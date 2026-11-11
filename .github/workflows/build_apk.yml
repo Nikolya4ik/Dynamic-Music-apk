@@ -28,15 +28,14 @@ jobs:
       - name: Locate project files
         run: |
           if [ -f android_apk/main.py ]; then
-            echo "PROJECT_DIR=android_apk" >> $GITHUB_ENV
+            PROJECT_DIR=android_apk
           elif [ -f main.py ]; then
-            echo "PROJECT_DIR=." >> $GITHUB_ENV
+            PROJECT_DIR=.
           else
             echo "::error::Не найден main.py ни в корне, ни в папке android_apk"
             exit 1
           fi
-          SPEC_DIR="$PROJECT_DIR"
-          if [ ! -f "$SPEC_DIR/buildozer.spec" ]; then
+          if [ ! -f "$PROJECT_DIR/buildozer.spec" ]; then
             if [ -f buildozer.spec ]; then
               cp buildozer.spec "$PROJECT_DIR/"
             else
@@ -44,6 +43,7 @@ jobs:
               exit 1
             fi
           fi
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
           echo "Проект найден в: $PROJECT_DIR"
 
       - name: Build APK
