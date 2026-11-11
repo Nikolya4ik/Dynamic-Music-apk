@@ -25,13 +25,45 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython==0.29.36
 
-      - name: Build APK
-        working-directory: android_apk
+      - name: Locate project files
         run: |
+          if [ -f android_apk/main.py ]; then
+            echo "PROJECT_DIR=android_apk" >> $GITHUB_ENV
+          elif [ -f main.py ]; then
+            echo "PROJECT_DIR=." >> $GITHUB_ENV
+          else
+            echo "::error::Не найден main.py ни в корне, ни в папке android_apk"
+            exit 1
+          fi
+          SPEC_DIR="$PROJECT_DIR"
+          if [ ! -f "$SPEC_DIR/buildozer.spec" ]; then
+            if [ -f buildozer.spec ]; then
+              cp buildozer.spec "$PROJECT_DIR/"
+            else
+              echo "::error::Не найден buildozer.spec"
+              exit 1
+            fi
+          fi
+          echo "Проект найден в: $PROJECT_DIR"
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
           yes | buildozer android debug || buildozer android debug
+
+      - name: Find APK
+        id: apk
+        run: |
+          APK=$(find . -name '*.apk' -not -path './.*' | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "::error::APK не собрался — смотри логи шага Build APK"
+            exit 1
+          fi
+          echo "Найден APK: $APK"
+          echo "path=$APK" >> $GITHUB_OUTPUT
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: layered-player-apk
-          path: android_apk/bin/*.apk
+          path: ${{ steps.apk.outputs.path }}
